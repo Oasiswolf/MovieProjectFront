@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Movie Collection</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    
+    <div class="page-wrapper">
+
+        <div class="buttons-wrapper">
+
+            <button id="view-movies-btn">View Collection</button>
+
+            <button id="add-movie-btn">Add to Collection</button>
+
+        </div>
+
+        <div class="movies-wrapper">
+            <h2>Movie List</h2>
+        </div>
+
+        <div class="add-movie-form-wrapper">
+
+            <form class="add-movie-form">
+
+                <label for="title">Title: </label>
+                <input type="text" name="title" id="title-input" placeholder="Title Required">
+
+                <label for="genre">Genre: </label>
+                <input type="text" name="genre" id="genre-input" placeholder="Genre Required">
+
+                <label for="mpaa_rating">Mpaa Rating: </label>
+                <input type="text" name="mpaa_rating" id="mpaa-rating-input" placeholder="Mpaa Rating">
+
+                <label for="poster_img">Movie Poster: </label>
+                <input type="text" name="poster_img" id="poster-img-input" placeholder="Movie Poster Image">
+
+                <button type="submit">Add Entry</button>
+
+
+
+            </form>
+
+        </div>
+
+    </div>
+
+</body>
+
+<script>
+
+    const renderMovie = (movie) => {
+
+        const movieWrapper = document.createElement("div");
+        movieWrapper.className = "movie-wrapper";
+
+        const titleTag = document.createElement("h2");
+        titleTag.innerHTML = movie.title;
+
+        const genreTag = document.createElement("h4");
+        genreTag.innerHTML = movie.genre;
+
+        const mpaaRatingTag = document.createElement("h5");
+        mpaaRatingTag.innerHTML = movie.mpaa_rating;
+
+        const posterImgTag = document.createElement("img");
+        posterImgTag.src = movie.poster_img;
+
+        const buttonsWrapper = document.createElement("div");
+        buttonsWrapper.className = "buttons-wrapper";
+
+        const editButton = document.createElement("button");
+        editButton.innerHTML = "Edit";
+
+        const handleEdit = () => {
+
+            titleTag.style.display = "none";
+            genreTag.style.display = "none";
+            mpaaRatingTag.style.display = "none";
+            posterImgTag.style.display = "none";
+
+            const titleInput = document.createElement("input")
+            const genreInput = document.createElement("input")
+            const mpaaRatingInput = document.createElement("input")
+            const posterImgInput = document.createElement("input")
+
+            titleInput.value = titleTag.innerHTML;
+            genreInput.value =genreTag.innerHTML;
+            mpaaRatingInput.value = mpaaRatingTag.innerHTML;
+            posterImgInput.value = posterImgTag.src;
+
+            movieWrapper.insertBefore(titleInput, buttonsWrapper);
+            movieWrapper.insertBefore(genreInput, buttonsWrapper);
+            movieWrapper.insertBefore(mpaaRatingInput, buttonsWrapper);
+            movieWrapper.insertBefore(posterImgInput, buttonsWrapper);
+
+            editButton.innerHTML = "Submit";
+            editButton.onclick = () => {
+
+                fetch(`http://127.0.0.1:5000/movie/edit/${movie.id}`, {
+                    method: "PUT",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({
+                        title: titleInput.value,
+                        genre: genreInput.value,
+                        mpaa_rating: mpaaRatingInput.value,
+                        poster_img: posterImgInput.value,
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Edit Data submitted", data);
+
+                    titleTag.innerHTML = titleInput.value;
+                    genreTag.innerHTML = genreInput.value;
+                    mpaaRatingTag.innerHTML = mpaaRatingInput.value;
+                    posterImgTag.src = posterImgInput.value;
+
+                    titleInput.remove();
+                    genreInput.remove();
+                    mpaaRatingInput.remove();
+                    posterImgInput.remove();
+
+                    titleTag.style.display = "block";
+                    genreTag.style.display = "block";
+                    mpaaRatingTag.style.display = "block";
+                    posterImgTag.style.display = "block";
+
+                    editButton.innerHTML = "Edit"
+                })
+                .catch(error => console.log("Error submitting Update Data: ", error))
+            }
+
+        }
+        editButton.onclick = handleEdit;
+
+        const deleteButton = document.createElement("button");
+        deleteButton.innerHTML = "Delete Movie"
+
+        deleteButton.onclick = () => {
+
+            fetch(`http://127.0.0.1:5000/movie/delete/${movie.id}`, {
+                method: "DELETE",
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Data being Deleted: ", data)
+                if (data === "Your movie has been deleted!") {
+                    movieWrapper.remove()
+                }
+            })
+            .catch(error => console.log("Error Deleting Movie", error));
+        };
+
+        buttonsWrapper.appendChild(editButton);
+        buttonsWrapper.appendChild(deleteButton);
+
+        movieWrapper.appendChild(titleTag);
+        movieWrapper.appendChild(genreTag);
+        movieWrapper.appendChild(mpaaRatingTag);
+        movieWrapper.appendChild(posterImgTag);
+        movieWrapper.appendChild(buttonsWrapper);
+
+        const moviesWrapper = document.querySelector(".movies-wrapper");
+        moviesWrapper.appendChild(movieWrapper)
+    }
+
+    fetch("http://127.0.0.1:5000/movie/get")
+        .then(response => response.json())
+        .then(data => {
+            data.forEach(movie => {
+                renderMovie(movie);
+            });
+        })
+        .catch(error => console.log("Error Retrieving Data from Server!", error))
+
+    
+    const viewMovieButton = document.querySelector("#view-movies-btn");
+    const addMovieButton = document.querySelector("#add-movie-btn");
+    const moviesDiv = document.querySelector(".movies-wrapper");
+    const formDiv = document.querySelector(".add-movie-form-wrapper");
+
+    viewMovieButton.onclick = () => {
+        moviesDiv.style.display = "flex";
+        formDiv.style.display = "none";
+    }
+    
+    addMovieButton.onclick = () => {
+        moviesDiv.style.display = "none";
+        formDiv.style.display = "flex";
+    };
+
+    const addMovieForm = document.querySelector(".add-movie-form");
+    addMovieForm.onsubmit = (event) => {
+
+        event.preventDefault();
+
+        const titleInput = document.querySelector("#title-input")
+        const genreInput = document.querySelector("#genre-input")
+        const mpaaRatingInput = document.querySelector("#mpaa-rating-input")
+        const posterImgInput = document.querySelector("#poster-img-input")
+
+        const title = titleInput.value;
+        const genre = genreInput.value;
+        const mpaaRating = mpaaRatingInput.value;
+        const posterImg = posterImgInput.value;
+
+        fetch("http://127.0.0.1:5000/movie/add", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+                title: title,
+                genre: genre,
+                mpaa_rating: mpaaRating,
+                poster_img: posterImg,
+            }),
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log("New Movie Data: ", data);
+
+                formDiv.style.display = "none";
+
+                titleInput.value = "";
+                genreInput.value = "";
+                mpaaRatingInput.value = "";
+                posterImgInput.value = "";
+
+                fetch(`http://127.0.0.1:5000/movie/get/${movie.id}`)
+                    .then(response => response.json())
+                    .then(data => renderMovie(data))
+                    .catch(error => console.log("Error getting New Movie Data:", error));
+            })
+            .catch(error => console.log("Error Adding New Movie:", error))
+
+    }
+</script>
+
+</html>
